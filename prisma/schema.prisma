@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model admin {
+  id_admin           String               @id @db.VarChar(20)
+  karyawan_produksi  karyawan_produksi[]
+  laporan            laporan[]
+  owner              owner[]
+  pesanan_bahan_baku pesanan_bahan_baku[]
+  pesanan_produk     pesanan_produk[]
+  produk             produk[]
+  resep_standar      resep_standar[]
+  supplier           supplier[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bahan_baku {
+  id_bahan_baku             String                      @id @db.VarChar(20)
+  nama_bahan                String                      @db.VarChar(100)
+  stok_tersedia             Decimal                     @default(0) @db.Decimal(12, 2)
+  stok_minimal              Decimal                     @default(0) @db.Decimal(12, 2)
+  harga_satuan              Decimal                     @db.Decimal(12, 2)
+  id_owner                  String?                     @db.VarChar(20)
+  owner                     owner?                      @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+  detail_pesanan_bahan_baku detail_pesanan_bahan_baku[]
+  resep_bahan_baku          resep_bahan_baku[]
+
+  @@index([id_owner], map: "idx_bahan_owner")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model detail_pesanan_bahan_baku {
+  id_pengadaan       String             @db.VarChar(20)
+  id_bahan_baku      String             @db.VarChar(20)
+  jumlah             Decimal            @db.Decimal(12, 2)
+  harga_satuan       Decimal            @db.Decimal(12, 2)
+  bahan_baku         bahan_baku         @relation(fields: [id_bahan_baku], references: [id_bahan_baku], onDelete: NoAction, onUpdate: NoAction)
+  pesanan_bahan_baku pesanan_bahan_baku @relation(fields: [id_pengadaan], references: [id_pengadaan], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_pengadaan, id_bahan_baku])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model detail_pesanan_produk {
+  id_pesanan     String         @db.VarChar(20)
+  id_produk      String         @db.VarChar(20)
+  jumlah         Int
+  harga_satuan   Decimal        @db.Decimal(15, 2)
+  pesanan_produk pesanan_produk @relation(fields: [id_pesanan], references: [id_pesanan], onDelete: Cascade, onUpdate: NoAction)
+  produk         produk         @relation(fields: [id_produk], references: [id_produk], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([id_pesanan, id_produk])
+}
+
+model karyawan_produksi {
+  id_karyawan               String                      @id @db.VarChar(20)
+  id_admin                  String?                     @db.VarChar(20)
+  admin                     admin?                      @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  penugasan_karyawan_produk penugasan_karyawan_produk[]
+}
+
+model laporan {
+  id_laporan       String   @id @db.VarChar(20)
+  tanggal_generate DateTime @db.Date
+  periode          String?  @db.VarChar(50)
+  id_admin         String?  @db.VarChar(20)
+  id_owner         String?  @db.VarChar(20)
+  id_produk        String?  @db.VarChar(20)
+  admin            admin?   @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  owner            owner?   @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+  produk           produk?  @relation(fields: [id_produk], references: [id_produk], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_produk], map: "idx_laporan_produk")
+}
+
+model owner {
+  id_owner           String               @id @db.VarChar(20)
+  id_admin           String               @db.VarChar(20)
+  bahan_baku         bahan_baku[]
+  laporan            laporan[]
+  admin              admin                @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  pesanan_bahan_baku pesanan_bahan_baku[]
+  pesanan_produk     pesanan_produk[]
+  produk             produk[]
+  resep_standar      resep_standar[]
+  supplier           supplier[]
+}
+
+model penugasan_karyawan_produk {
+  id_karyawan       String            @db.VarChar(20)
+  id_produk         String            @db.VarChar(20)
+  karyawan_produksi karyawan_produksi @relation(fields: [id_karyawan], references: [id_karyawan], onDelete: NoAction, onUpdate: NoAction)
+  produk            produk            @relation(fields: [id_produk], references: [id_produk], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([id_karyawan, id_produk])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pesanan_bahan_baku {
+  id_pengadaan              String                      @id @db.VarChar(20)
+  status                    String                      @db.VarChar(30)
+  tanggal_pesanan           DateTime                    @db.Date
+  total_biaya               Decimal                     @default(0) @db.Decimal(15, 2)
+  persetujuan_owner         String?                     @db.VarChar(20)
+  jumlah_pesanan            Int                         @default(0)
+  id_owner                  String?                     @db.VarChar(20)
+  id_admin                  String?                     @db.VarChar(20)
+  id_supplier               String                      @db.VarChar(20)
+  detail_pesanan_bahan_baku detail_pesanan_bahan_baku[]
+  admin                     admin?                      @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  owner                     owner?                      @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+  supplier                  supplier                    @relation(fields: [id_supplier], references: [id_supplier], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_supplier], map: "idx_pengadaan_supplier")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pesanan_produk {
+  id_pesanan            String                  @id @db.VarChar(20)
+  tanggal_pesanan       DateTime                @db.Date
+  jenis_pesanan         String?                 @db.VarChar(30)
+  status                String                  @db.VarChar(30)
+  nama_pelanggan        String                  @db.VarChar(100)
+  total_biaya_pesanan   Decimal                 @default(0) @db.Decimal(15, 2)
+  id_admin              String?                 @db.VarChar(20)
+  id_owner              String?                 @db.VarChar(20)
+  detail_pesanan_produk detail_pesanan_produk[]
+  admin                 admin?                  @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  owner                 owner?                  @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_owner], map: "idx_pesanan_produk_owner")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model produk {
+  id_produk                 String                      @id @db.VarChar(20)
+  jumlah_target             Int                         @default(0)
+  jumlah_berhasil           Int                         @default(0)
+  nama_produk               String                      @db.VarChar(100)
+  harga_jual                Decimal                     @db.Decimal(15, 2)
+  id_admin                  String?                     @db.VarChar(20)
+  id_owner                  String?                     @db.VarChar(20)
+  detail_pesanan_produk     detail_pesanan_produk[]
+  laporan                   laporan[]
+  penugasan_karyawan_produk penugasan_karyawan_produk[]
+  admin                     admin?                      @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  owner                     owner?                      @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+  resep_standar             resep_standar[]
+
+  @@index([id_owner], map: "idx_produk_owner")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model resep_bahan_baku {
+  id_resep      String        @db.VarChar(20)
+  id_bahan_baku String        @db.VarChar(20)
+  jumlah_bahan  Decimal       @db.Decimal(12, 2)
+  satuan        String?       @db.VarChar(30)
+  bahan_baku    bahan_baku    @relation(fields: [id_bahan_baku], references: [id_bahan_baku], onDelete: NoAction, onUpdate: NoAction)
+  resep_standar resep_standar @relation(fields: [id_resep], references: [id_resep], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id_resep, id_bahan_baku])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model resep_standar {
+  id_resep           String             @id @db.VarChar(20)
+  nama_resep         String             @db.VarChar(100)
+  porsi_standar      Int
+  petunjuk_pembuatan Int?
+  id_admin           String?            @db.VarChar(20)
+  id_owner           String?            @db.VarChar(20)
+  id_produk          String             @db.VarChar(20)
+  resep_bahan_baku   resep_bahan_baku[]
+  admin              admin?             @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  owner              owner?             @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+  produk             produk             @relation(fields: [id_produk], references: [id_produk], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model supplier {
+  id_supplier        String               @id @db.VarChar(20)
+  nama_supplier      String               @db.VarChar(100)
+  username           String?              @unique @db.VarChar(50)
+  password           String               @db.VarChar(255)
+  email              String?              @db.VarChar(100)
+  alamat             String?              @db.VarChar(255)
+  id_admin           String?              @db.VarChar(20)
+  id_owner           String?              @db.VarChar(20)
+  pesanan_bahan_baku pesanan_bahan_baku[]
+  admin              admin?               @relation(fields: [id_admin], references: [id_admin], onDelete: NoAction, onUpdate: NoAction)
+  owner              owner?               @relation(fields: [id_owner], references: [id_owner], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_admin], map: "idx_supplier_admin")
+  @@index([id_owner], map: "idx_supplier_owner")
+}
